@@ -92,10 +92,12 @@ const expose = async (path, destination, stream, grep = [], require = {}) => {
         const [full, name] =
             line.match(classRegExp) ||
             line.match(funcRegExp) ||
+            line.match(globalVarRegExp) ||
             [line];
 
         name && exports.push(name);
 
+        //replace strings matchign greps;
         const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
         await write(`${changed}\n`);
     };
