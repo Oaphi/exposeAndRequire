@@ -12,5 +12,9 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/Oaphi/exposeAndRequire"
-    }
+    },
+    "bugs": {
+        "url": "https://github.com/Oaphi/exposeAndRequire/issues"
+    },
+    "main": "./src/main.js"
 }
