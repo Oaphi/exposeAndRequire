@@ -17,7 +17,7 @@ Updated file is then saved to the specified folder and required as a module.
   - `grep` each line will be matched against and performed replacements on accordingly
   - `require` output file will be prepended with `require` statements
 
-```
+```node.js
 const ER = require('expose-require');
 
 ER.exposeAndRequire('./lib/index.js','./test',{
