@@ -86,7 +86,7 @@ const expose = async (path, destination, stream, grep = [], require = {}) => {
 
     const processLine = async (line) => {
         const classRegExp = /^class\s+(\w+)\s*\{/;
-        const funcRegExp = /^function\s+(\w+)\s*(?:\{|\()/;
+        const funcRegExp = /^(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
         const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
 
         const [full, name] =
