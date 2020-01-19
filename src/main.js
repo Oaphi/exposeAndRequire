@@ -72,7 +72,7 @@ const expose = async (path, destination, stream, grep = [], require = {}) => {
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.keys(require)
-        .map(key => `const ${key} = require("${
+        .map(key => `${key !== '' ? `const ${key} = ` : ''}require("${
             /[^\w-]/.test(require[key]) ?
                 relLocal(destination, require[key]).replace(/\\/g, '\\\\') :
                 require[key]
