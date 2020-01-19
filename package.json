@@ -1,0 +1,16 @@
+{
+    "name": "expose-require",
+    "author": "Oleg Valter <o.a.philippov@gmail.com>",
+    "description": "exposes global variables, classes and functions",
+    "keywords": [
+        "modules", "common.js", "globals"
+    ],
+    "version": "1.0.0",
+    "devDependencies": {},
+    "dependencies": {},
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Oaphi/exposeAndRequire"
+    }
+}

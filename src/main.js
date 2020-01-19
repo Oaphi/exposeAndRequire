@@ -47,6 +47,12 @@ const getLineBytes = async (path, lines) => {
     return numberOfBytes;
 };
 
+/**
+ * Resolves path to use when inserting "require"
+ * @param {String} from path from which to resolve 
+ * @param {String} to path to which to resolve
+ * @returns {String} relative path
+ */
 const relLocal = (from, to) => {
     const relative = pt.relative(from, to);
     const localRelative = /^\w/.test(relative) ? `.\\${relative}` : relative;
