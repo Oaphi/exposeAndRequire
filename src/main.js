@@ -85,7 +85,7 @@ const expose = async (path, destination, stream, grep = [], require = {}) => {
     const exports = [];
 
     const processLine = async (line) => {
-        const classRegExp = /^class\s+(\w+)\s*\{/;
+        const classRegExp = /^\t|\s*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
         const funcRegExp = /^(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
         const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
 
@@ -133,6 +133,12 @@ const exposeAndRequire = async (path, folderPath, options = {}) => {
     const destinationPath = pt.resolve(folderPath, filePath.base);
 
     const existing = fs.existsSync(destinationPath);
+
+    console.log(folderPath);
+
+    if(!existing) {
+        fs.mkdirSync(folderPath,{recursive:true});
+    }
 
     const skipBytes = existing ? await getLineBytes(destinationPath, options.skip) : 0;
 
