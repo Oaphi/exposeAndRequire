@@ -11,8 +11,8 @@ Updated file is then saved to the specified folder and required as a module.
 
 `exposeAndRequire` function accepts three parameters:
 
-1. Path to the source file **required**
-2. Path to the target folder **required**
+1. Path to the source file **(required)**
+2. Path to the target folder **(required)**
 3. Options object, specifying actions:
   - `grep` each line will be matched against and performed replacements on accordingly
   - `require` output file will be prepended with `require` statements
