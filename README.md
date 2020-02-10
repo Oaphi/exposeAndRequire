@@ -3,7 +3,7 @@ Adds "module.exports" to a file, exposing:
 
 - globally defined variables (either with const, let or var);
 - globally declared functions with "function" keyword;
-- classes declared with "class" keyword;
+- classes declared with "class" keyword (including child classes with "extends");
 
 Updated file is then saved to the specified folder and required as a module.
 
@@ -31,3 +31,48 @@ ER.exposeAndRequire('./lib/index.js','./test',{
 });
 
 ```
+
+### Exposing classes
+
+Given a class or a child class declaration,
+the utility will add it to the current `module.exports`.
+*Note that in-scope declarations will be exposed as well*
+
+```
+class BaseClassLine {}
+class BaseClass {
+    constructor() {
+
+    }
+}
+    //tabulated declaration
+	class BaseClassTabbed {
+        constructor() {
+            
+        }
+    }
+
+    //spaced declaration
+    class BaseClassSpaced {
+        constructor() {
+
+        }
+    }
+
+class ChildClassLine extends BaseClass {}
+class ChildClass extends BaseClass {
+    constructor() {
+        
+    }
+}
+```
+exposes:
+````
+module.exports = {
+	BaseClassLine,
+	BaseClass,
+	BaseClassSpaced,
+	ChildClassLine,
+	ChildClass
+};
+````
