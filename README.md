@@ -71,6 +71,7 @@ exposes:
 module.exports = {
 	BaseClassLine,
 	BaseClass,
+	BaseClassTabbed,
 	BaseClassSpaced,
 	ChildClassLine,
 	ChildClass
