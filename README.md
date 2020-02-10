@@ -38,7 +38,7 @@ Given a class or a child class declaration,
 the utility will add it to the current `module.exports`.
 *Note that in-scope declarations will be exposed as well*
 
-```
+```node.js
 class BaseClassLine {}
 class BaseClass {
     constructor() {
@@ -67,7 +67,7 @@ class ChildClass extends BaseClass {
 }
 ```
 exposes:
-````
+````node.js
 module.exports = {
 	BaseClassLine,
 	BaseClass,
