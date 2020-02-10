@@ -3,10 +3,14 @@
     "author": "Oleg Valter <o.a.philippov@gmail.com>",
     "description": "exposes global variables, classes and functions",
     "keywords": [
-        "modules", "common.js", "globals"
+        "modules",
+        "common.js",
+        "globals"
     ],
     "version": "1.0.0",
-    "devDependencies": {},
+    "devDependencies": {
+        "mocha": "^7.0.1"
+    },
     "dependencies": {},
     "license": "MIT",
     "repository": {
@@ -16,5 +20,8 @@
     "bugs": {
         "url": "https://github.com/Oaphi/exposeAndRequire/issues"
     },
-    "main": "./src/main.js"
+    "main": "./src/main.js",
+    "scripts": {
+        "test": "mocha"
+    }
 }
