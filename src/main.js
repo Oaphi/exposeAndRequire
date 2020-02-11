@@ -72,6 +72,7 @@ const relPath = (from, to, use) => {
     const useMap = new Map();
     useMap.set('cwd', process.cwd());
     useMap.set('module', __dirname);
+    useMap.set('root','.');
 
     const choice = useMap.get(use);
 
