@@ -13,7 +13,21 @@ const pt = require('path');
 /**
  * @typedef {Object} RequireModules
  * @type {Object.<String, String>}
+ * @property {String} use
  */
+
+/**
+ * Map of directory options to 
+ * resolve against when requiring
+ * and making outputs
+ * @enum {String}
+ * @property {String} cwd resolve against process cwd
+ * @property {String} module resolve against module root
+ * TODO add project root option
+ */
+const dirMap = new Map();
+dirMap.set('cwd', process.cwd());
+dirMap.set('module', __dirname);
 
 
 /**
@@ -51,12 +65,21 @@ const getLineBytes = async (path, lines) => {
  * Resolves path to use when inserting "require"
  * @param {String} from path from which to resolve 
  * @param {String} to path to which to resolve
- * @returns {String} relative path
+ * @param {String} use directory to resolve against
+ * @returns {String} resolved path
  */
-const relLocal = (from, to) => {
-    const relative = pt.relative(from, to);
-    const localRelative = /^\w/.test(relative) ? `.\\${relative}` : relative;
-    return localRelative;
+const relPath = (from, to, use) => {
+    const useMap = new Map();
+    useMap.set('cwd', process.cwd());
+    useMap.set('module', __dirname);
+
+    const choice = useMap.get(use);
+
+    const path = pt
+        .resolve(choice, from, to)
+        .replace(/\\/g, '/');
+
+    return path;
 };
 
 /**
@@ -66,15 +89,16 @@ const relLocal = (from, to) => {
  * @param {WritableStream} stream 
  * @param {RequireGREP[]} grep
  * @param {RequireModules} require
+ * @param {String} use
  * @returns {WritableStream}
  */
-const expose = async (path, destination, stream, grep = [], require = {}) => {
+const expose = async (path, destination, stream, grep = [], require = {}, use = 'module') => {
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.keys(require)
         .map(key => `${key !== '' ? `const ${key} = ` : ''}require("${
             /[^\w-]/.test(require[key]) ?
-                relLocal(destination, require[key]).replace(/\\/g, '\\\\') :
+                relPath(destination, require[key], use) :
                 require[key]
             }");`);
 
@@ -125,6 +149,7 @@ const expose = async (path, destination, stream, grep = [], require = {}) => {
  * @param {RequireGREP[]} options.grep update lines matching regex
  * @param {RequireModules} options.require include specified modules
  * @param {Number} options.skip lines to skip when writing
+ * @param {String} options.use which folder to relate to
  * @returns {*} required module content
  */
 const exposeAndRequire = async (path, folderPath, options = {}) => {
@@ -134,10 +159,8 @@ const exposeAndRequire = async (path, folderPath, options = {}) => {
 
     const existing = fs.existsSync(destinationPath);
 
-    console.log(folderPath);
-
-    if(!existing) {
-        fs.mkdirSync(folderPath,{recursive:true});
+    if (!existing) {
+        fs.mkdirSync(folderPath, { recursive: true });
     }
 
     const skipBytes = existing ? await getLineBytes(destinationPath, options.skip) : 0;
@@ -146,11 +169,11 @@ const exposeAndRequire = async (path, folderPath, options = {}) => {
         start: skipBytes, flags: existing && skipBytes ? 'r+' : 'w'
     });
 
-    await expose(path, folderPath, writeable, options.grep, options.require);
+    await expose(path, folderPath, writeable, options.grep, options.require, options.use);
 
     return require(`${destinationPath}`);
 };
 
 module.exports = {
-  exposeAndRequire
+    exposeAndRequire
 };

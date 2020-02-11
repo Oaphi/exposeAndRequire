@@ -27,7 +27,8 @@ ER.exposeAndRequire('./lib/index.js','./test',{
     grep: [{
         match: /(\d+)/,
         replace: '$1$1'
-    }]
+    }],
+    use: "module"
 });
 
 ```
