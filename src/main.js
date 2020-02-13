@@ -3,6 +3,10 @@ const rl = require('readline');
 const util = require('util');
 const pt = require('path');
 
+const asyncAccess = util.promisify(fs.access);
+const asyncAppendFile = util.promisify(fs.appendFile);
+const asyncChmod = util.promisify(fs.chmod);
+
 /**
  * @typedef {Object} RequireGREP
  * @type {Object.<RegExp, String>}
@@ -28,7 +32,13 @@ const pt = require('path');
 const dirMap = new Map();
 dirMap.set('cwd', process.cwd());
 dirMap.set('module', __dirname);
+dirMap.set('root', '.');
 
+/**
+ * Logs a message to stdout (shortcut)
+ * @param {String} msg 
+ */
+const log = (msg) => process.stdout.write(msg);
 
 /**
  * Creates readline interface from path 
@@ -69,12 +79,7 @@ const getLineBytes = async (path, lines) => {
  * @returns {String} resolved path
  */
 const relPath = (from, to, use) => {
-    const useMap = new Map();
-    useMap.set('cwd', process.cwd());
-    useMap.set('module', __dirname);
-    useMap.set('root','.');
-
-    const choice = useMap.get(use);
+    const choice = dirMap.get(use);
 
     const path = pt
         .resolve(choice, from, to)
@@ -86,14 +91,14 @@ const relPath = (from, to, use) => {
 /**
  * 
  * @param {String} path 
- * @param {String} destination
+ * @param {String} [destination='']
  * @param {WritableStream} stream 
- * @param {RequireGREP[]} grep
- * @param {RequireModules} require
- * @param {String} use
+ * @param {RequireGREP[]} [grep=[]]
+ * @param {RequireModules} [require={}]
+ * @param {String} [use=root]
  * @returns {WritableStream}
  */
-const expose = async (path, destination, stream, grep = [], require = {}, use = 'module') => {
+const expose = async (path, destination, stream, grep = [], require = {}, use = 'root') => {
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.keys(require)
@@ -138,13 +143,13 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
     await write('\nmodule.exports = ' + moduleExports);
 
     return stream;
-}
+};
 
 /**
  * 1. Exposes file's globally defined classes and functions to module.exports
- * 2. Exports file as Common.js module in the folder specified
+ * 2. Exports file as Common.js module in the folder specified or root dir
  * 3. Requires the file for use
- * @param {String} path path to source file
+ * @param {String} filePath path to source file
  * @param {String} folderPath path to destination folder
  * @param {Object} options configuration object
  * @param {RequireGREP[]} options.grep update lines matching regex
@@ -153,26 +158,55 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
  * @param {String} options.use which folder to relate to
  * @returns {*} required module content
  */
-const exposeAndRequire = async (path, folderPath, options = {}) => {
-    const filePath = pt.parse(path);
+const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
-    const destinationPath = pt.resolve(folderPath, filePath.base);
+    const inputPath = pt.parse(filePath);
 
-    const existing = fs.existsSync(destinationPath);
+    const outputPath = pt.resolve(folderPath, inputPath.base);
 
-    if (!existing) {
-        fs.mkdirSync(folderPath, { recursive: true });
-    }
+    const existingFolderOath = asyncAccess(folderPath)
+        .then(() => log(`[OK] output folder exists or is root\n`))
+        .catch(err => {
+            err.code === 'ENOENT' && fs.mkdirSync(folderPath, { recursive: true });
+            log(`[OK] created folder ${folderPath}\n`);
+        });
 
-    const skipBytes = existing ? await getLineBytes(destinationPath, options.skip) : 0;
+    const readWriteMask = fs.constants.W_OK | fs.constants.R_OK;
 
-    const writeable = fs.createWriteStream(destinationPath, {
-        start: skipBytes, flags: existing && skipBytes ? 'r+' : 'w'
+    const existingOutputFileOath = asyncAccess(outputPath, readWriteMask)
+        .then(() => log(`[OK] output file exists and can be written\n`))
+        .catch(async err => {
+
+            const makeIfNone = err.code === 'ENOENT' && asyncAppendFile(outputPath,'')
+                .then(() => log(`[OK] created output file\n`))
+                .catch(err => {
+                    //TODO handle file creation issues
+                });
+
+            const permitIfNot = err.code === 'EPERM' && asyncChmod(outputPath, '0o755')
+                .then(() => log(`[OK] changed file permissions to read, write\n`))
+                .catch(err => {
+                    log(`[STOP] not enough permissions to change mode\n`);
+                    process.exit(1);
+                });
+
+            return Promise.all([makeIfNone, permitIfNot]);
+        });
+
+    await Promise.all([existingFolderOath, existingOutputFileOath]);
+
+    const skipBytes = await (getLineBytes(outputPath, options.skip));
+
+    console.log(outputPath);
+
+    const writeable = fs.createWriteStream(outputPath, {
+        start: skipBytes || 0,
+        flags: skipBytes ? 'r+' : 'w'
     });
 
-    await expose(path, folderPath, writeable, options.grep, options.require, options.use);
+    await expose(filePath, outputPath, writeable, options.grep, options.require, options.use);
 
-    return require(`${destinationPath}`);
+    return require(`${outputPath}`);
 };
 
 module.exports = {
