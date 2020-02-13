@@ -197,14 +197,12 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
     const skipBytes = await (getLineBytes(outputPath, options.skip));
 
-    console.log(outputPath);
-
     const writeable = fs.createWriteStream(outputPath, {
         start: skipBytes || 0,
         flags: skipBytes ? 'r+' : 'w'
     });
 
-    await expose(filePath, outputPath, writeable, options.grep, options.require, options.use);
+    await expose(filePath, folderPath, writeable, options.grep, options.require, options.use);
 
     return require(`${outputPath}`);
 };

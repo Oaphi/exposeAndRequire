@@ -66,6 +66,7 @@ const someModule = await exposeAndRequire('test/test.js');
 
 Given a class or a child class declaration,
 the utility will add it to the current `module.exports`.
+
 *Note that in-scope declarations will be exposed as well*
 
 ```node.js
