@@ -10,7 +10,7 @@ If target path or file do not exist or the file can't be read or
 written, the module will attempt to create the path and (or) change 
 target file's permissions.
 
-**WARNING** The module is asynchronous, use `await` or promises to make avoid race conditions.
+**WARNING** The module is asynchronous, use `await` or promises to avoid race conditions.
 
 ## Basic usage
 
@@ -52,7 +52,7 @@ ER
 You can omit both the target path and opions, in which case the 
 file will be created in the `root` directory:
 
-````
+````node.js
 const { exposeAndRequire } = require('expose-require');
 
 //inside async function
