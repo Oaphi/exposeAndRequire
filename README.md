@@ -5,33 +5,62 @@ Adds "module.exports" to a file, exposing:
 - globally declared functions with "function" keyword;
 - classes declared with "class" keyword (including child classes with "extends");
 
-Updated file is then saved to the specified folder and required as a module.
+Updated file is then saved to the target path and `require`d.
+If target path or file do not exist or the file can't be read or 
+written, the module will attempt to create the path and (or) change 
+target file's permissions.
+
+**WARNING** The module is asynchronous, use `await` or promises to make avoid race conditions.
 
 ## Basic usage
 
 `exposeAndRequire` function accepts three parameters:
 
-1. Path to the source file **(required)**
-2. Path to the target folder **(required)**
+1. Path to the source path **(required)**
+2. Path to the target path
 3. Options object, specifying actions:
   - `grep` each line will be matched against and performed replacements on accordingly
   - `require` output file will be prepended with `require` statements
+  - `use` root to resolve against for required modules, can be either:
+    - `root` paths are relative to `"."` **default**
+    - `cwd` paths are relative to `process.cwd()` **dynamic**
+    - `module` paths are relative to module folder
 
 ```node.js
 const ER = require('expose-require');
 
-ER.exposeAndRequire('./lib/index.js','./test',{
-    require: {
-        'fs': 'fs'
-    },
-    grep: [{
-        match: /(\d+)/,
-        replace: '$1$1'
-    }],
-    use: "module"
-});
+ER
+    .exposeAndRequire('lib/index.js','test',{
+        require: {
+            'fs': 'fs',
+            '{ someFunc }': 'someModule'
+        },
+        grep: [{
+            match: /(\d+)/,
+            replace: '$1$1'
+        }],
+        use: "module"
+    })
+    .then(module => {
+        //do stuff;
+    });
 
 ```
+
+### Usage with source path only
+
+You can omit both the target path and opions, in which case the 
+file will be created in the `root` directory:
+
+````
+const { exposeAndRequire } = require('expose-require');
+
+//inside async function
+const someModule = await exposeAndRequire('test/test.js');
+
+//do stuff;
+
+````
 
 ### Exposing classes
 
