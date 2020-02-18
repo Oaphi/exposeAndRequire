@@ -78,7 +78,7 @@ const getLineBytes = async (path, lines) => {
  * @param {String} use directory to resolve against
  * @returns {String} resolved path
  */
-const relPath = (from, to, use) => {
+const relPath = (from, to) => (use) => {
     const choice = dirMap.get(use);
 
     const path = pt
@@ -102,17 +102,27 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.keys(require)
-        .map(key => `${key !== '' ? `const ${key} = ` : ''}require("${
-            /[^\w-]/.test(require[key]) ?
-                relPath(destination, require[key], use) :
-                require[key]
-            }");`);
+        .map(key => {
+            const source = require[key];
+
+            const prefixed = source.split('::');
+
+            const hasPrefix = prefixed.length > 1;
+
+            const resolved = hasPrefix ?
+                relPath('', prefixed[1])(prefixed[0]) :
+                relPath(destination, source)(use);
+
+            return `${key !== '' ? `const ${key} = ` : ''}require("${
+                /[^\w-]/.test(source) ? resolved : source
+                }");`;
+        });
 
     includedModules.length && await write(`${includedModules.join('\n')}\n\n`);
 
     const IF = readlineFromPath(path);
 
-    const exports = [];
+    const exportsObj = [];
 
     const processLine = async (line) => {
         const classRegExp = /^(?:\t|\s)*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
@@ -125,7 +135,7 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
             line.match(globalVarRegExp) ||
             [line];
 
-        name && exports.push(name);
+        name && exportsObj.push(name);
 
         //replace strings matchign greps;
         const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
@@ -136,7 +146,7 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
         processLine(line);
     }
 
-    const moduleExports = `{\n${exports
+    const moduleExports = `{\n${exportsObj
         .map(l => '\t' + l)
         .join(',\n')}\n};`;
 
@@ -177,7 +187,7 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
         .then(() => log(`[OK] output file exists and can be written\n`))
         .catch(async err => {
 
-            const makeIfNone = err.code === 'ENOENT' && asyncAppendFile(outputPath,'')
+            const makeIfNone = err.code === 'ENOENT' && asyncAppendFile(outputPath, '')
                 .then(() => log(`[OK] created output file\n`))
                 .catch(err => {
                     //TODO handle file creation issues

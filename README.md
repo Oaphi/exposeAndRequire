@@ -21,7 +21,7 @@ target file's permissions.
 3. Options object, specifying actions:
   - `grep` each line will be matched against and performed replacements on accordingly
   - `require` output file will be prepended with `require` statements
-  - `use` root to resolve against for required modules, can be either:
+  - <a id="use"></a>`use` root to resolve against for required modules, can be either:
     - `root` paths are relative to `"."` **default**
     - `cwd` paths are relative to `process.cwd()` **dynamic**
     - `module` paths are relative to module folder
@@ -107,4 +107,19 @@ module.exports = {
 	ChildClassLine,
 	ChildClass
 };
+````
+
+### Overriding `require` sources
+
+To require a module without relation to *target path*, you can prefix the path with `[relation]::`,
+where `relation` is one of the [`use`](#use) option values. 
+
+In the example below, without `root::`, path to required `coolModule` would be resolved as `[module folder]/mocks/coolModule.js`, instead, it is resolved as `[project root]/coolModule.js`:
+````node.js
+const awesomeModule = await exposeAndRequire('pathToModule','mocks',{
+    require: {
+        "{ doCool }" : "root::coolModule.js"
+    },
+    use: "module"
+});
 ````
