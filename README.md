@@ -18,8 +18,12 @@ target file's permissions.
 
 1. Path to the source path **(required)**
 2. Path to the target path
-3. Options object, specifying actions:
+3. Options object, specifying actions / additional parameters:
+  - <a id="color"></a>`color` colorize output (using color escape sequences)
   - `grep` each line will be matched against and performed replacements on accordingly
+  - <a id="log">`log`</a> redirects logging output of the module:
+    - to a file if path is given
+    - to a stream if given a `Stream`
   - `require` output file will be prepended with `require` statements
   - <a id="use"></a>`use` root to resolve against for required modules, can be either:
     - `root` paths are relative to `"."` **default**
@@ -123,3 +127,39 @@ const awesomeModule = await exposeAndRequire('pathToModule','mocks',{
     use: "module"
 });
 ````
+
+### Logging
+
+By default, the module outputs status messages on `stdout` using `chalk`. If you intend to save or process logs, remember to remove colour escape sequences.
+
+<font color="green">[RESOLVED] Created source: mocks/no-such-file.js success</font>
+<font color="green">[EXPOSED] test/source/tested.js => test/mocks</font>
+<font color="red">[FAILED] Could not process file</font>
+
+The module can redirect logging output for you if you need to export to a file or send to logging service (see [`log`](#log) and [`color`](#color) options).
+
+### Versions
+
+<table>
+    <thead>
+        <tr>
+            <th>Version</th>
+            <th>Features</th>
+            <th>Fixes</th>
+        </tr>    
+    </thead>
+    <tbody>
+        <tr>
+            <td>1.0.0</td>
+            <td>Initial feature set</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>1.1.0</td>
+            <td>Added "mute", "log" and "color" options</td>
+            <td>Squashed folder creation bugs</td>
+        </tr>
+    </tbody>
+</table>
+
+ 

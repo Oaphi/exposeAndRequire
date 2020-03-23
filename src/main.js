@@ -2,81 +2,278 @@ const fs = require('fs');
 const rl = require('readline');
 const util = require('util');
 const pt = require('path');
+const { EventEmitter } = require('events');
+const { blue, green, red, yellow } = require('chalk');
+const { execSync } = require('child_process');
 
-const asyncAccess = util.promisify(fs.access);
-const asyncAppendFile = util.promisify(fs.appendFile);
-const asyncChmod = util.promisify(fs.chmod);
+const { interceptErrors } = require('./utils.js');
 
 /**
- * @typedef {Object} RequireGREP
- * @type {Object.<RegExp, String>}
+ * @typedef RequireGREP
  * @property {RegExp} match
  * @property {String} replace
  */
 
 /**
- * @typedef {Object} RequireModules
- * @type {Object.<String, String>}
- * @property {String} use
+ * @typedef RequireModules
  */
+
+/**
+ * @typedef {object} ExposeRequireOptions
+ * @property {boolean} [color=true] colorize logging output 
+ * @property {RequireGREP[]} [grep] update lines matching regex
+ * @property {NodeJS.WritableStream|string} [log] output redirect
+ * @property {boolean} [mute] mutes logging output
+ * @property {number} [skip] lines to skip when writing
+ * @property {string} [use] which folder to relate to
+ * @property {RequireModules} [require] include specified modules
+ */
+
+
 
 /**
  * Map of directory options to 
  * resolve against when requiring
  * and making outputs
- * @enum {String}
- * @property {String} cwd resolve against process cwd
- * @property {String} module resolve against module root
- * TODO add project root option
+ * @enum {Map<string, string>}
+ * @property {string} cwd resolve against process cwd
+ * @property {string} module resolve against module dir
+ * @property {string} root
  */
 const dirMap = new Map();
 dirMap.set('cwd', process.cwd());
 dirMap.set('module', __dirname);
 dirMap.set('root', '.');
 
+
 /**
- * Logs a message to stdout (shortcut)
- * @param {String} msg 
+ * Prepares output path for export
+ * @param {string} path
+ * @param {string} [use=root]
+ * @param {Controller} JC
+ * @return {string}
  */
-const log = (msg) => process.stdout.write(msg);
+const validatePath = interceptErrors(
+    (path, use = 'root') => {
+        const checkedPath = !path || path === '' ? dirMap.get(use) : path;
+
+        if (!fs.existsSync(checkedPath)) {
+            fs.mkdirSync(checkedPath, { recursive: true });
+        }
+
+        return checkedPath;
+    },
+    () => console.warn('') //TODO add handling
+);
+
+/**
+ * Prepares input path for import
+ * @param {string} path 
+ * @param {string} [use=root] 
+ * @param {Controller} JC
+ * @returns {string}
+ */
+const validateFilePath = (path, use = 'root', JC) => {
+    const parsed = pt.parse(path);
+
+    const { base, dir } = parsed;
+
+    const validPath = validatePath(dir, use, JC);
+
+    const validFilePath = pt.resolve(validPath, base);
+
+    if (!fs.existsSync(validFilePath)) {
+        try {
+            execSync(`touch ${path}`);
+            JC.success(`[RESOLVED] Created source: ${path}`);
+        }
+        catch (touchError) {
+            //TODO: handle
+        }
+    }
+
+    return validFilePath;
+};
+
+/**
+ * Validate output redirection
+ * @param {NodeJS.WritableStream|string} output 
+ * @param {Controller} JC
+ * @returns {NodeJS.WritableStream|string}
+ */
+const validateLog = (output, JC) => {
+
+    if (!output) {
+        return process.stdout;
+    }
+
+    if (typeof output === 'string') {
+        try {
+            const parsed = pt.parse(output);
+
+            const { base, dir, ext } = parsed;
+
+            const dirPath = ext !== '' ? dir : output;
+
+            const validPath = validatePath(dirPath);
+
+            const logFilePath = pt.join(validPath, ext !== '' ? base : 'log.txt');
+
+            return fs.createWriteStream(logFilePath, { flags: "a+" });
+        }
+        catch (notAPath) {
+            throw new TypeError('Output should be a valid path');
+        }
+    }
+
+    const { write, writeable } = output;
+
+    if (typeof write !== 'function' || !writeable) {
+        throw new TypeError('Output redirect should be writable');
+    }
+
+    return output;
+};
+
+const stripColor = (msg) => msg.replace(/\u001b\[(?:0|1)*;*(?:3|4)(?:\d)m/g, '');
+
+class Controller extends EventEmitter {
+
+    #color = true;
+    #mute = false;
+
+    /**
+     * @param {EventEmitterOptions} emitterOpts
+     * @param {ExposeRequireOptions} [opts]
+     */
+    constructor(emitterOpts = {}, opts = {}) {
+
+        super(emitterOpts);
+
+        this.#mute = opts.mute || false;
+        this.#color = opts.color || false;
+
+        this.output = validateLog(opts.log, this);
+
+        this.logs = new Map();
+    }
+
+    /**
+     * Logs a message at debug level
+     * @param {string} msg 
+     * @returns {Controller}
+     */
+    debug(msg) {
+        return this.log(blue(msg), 'debug');
+    }
+
+    /**
+     * Logs an error level message
+     * @param {string} msg 
+     * @returns {Controller}
+     */
+    err(msg) {
+        return this.log(red(msg), 'error');
+    }
+
+    /**
+     * Logs a message at success level
+     * @param {string} msg 
+     * @returns {Controller}
+     */
+    success(msg) {
+        return this.log(green(msg), 'success');
+    }
+
+    /**
+     * Logs a warning level message
+     * @param {string} msg 
+     * @returns {Controller}
+     */
+    warn(msg) {
+        return this.log(yellow(msg), 'warn');
+    }
+
+    /**
+     * Logs a message
+     * @param {string} message 
+     * @param {string} level 
+     * @returns {Controller}
+     */
+    log(message, level = 'log') {
+        const { logs, output } = this;
+
+        this.emit(level);
+
+        logs
+            .set(Date.now(), {
+                message,
+                level
+            });
+
+        this.#color || (message = stripColor(message));
+
+        this.#mute || output.write(`${message}\n`);
+
+        return this;
+    }
+
+    mute() {
+        this.emit('mute');
+
+        this.#mute = true;
+        return this;
+    }
+
+    unmute() {
+        this.emit('unmute');
+
+        this.#mute = false;
+        return this;
+    }
+
+}
 
 /**
  * Creates readline interface from path 
  * for reading files line by line
  * @param {String} path valid path 
- * @returns {Interface} readline interface
+ * @returns {Interface}
  */
 const readlineFromPath = (path) => {
-    const read = fs.createReadStream(path);
+    const read = fs.createReadStream(path, { flags: 'a+' });
     return rl.createInterface(read);
 };
 
 /**
  * Counts number bytes in first N lines of a file
  * @param {String} path valid path
- * @param {Number=} lines lines to count
- * @returns {Number} bytes in lines
+ * @param {Number} [lines] lines to count
+ * @returns {Promise} bytes in lines
  */
-const getLineBytes = async (path, lines) => {
+const getLineBytes = async (path, lines = 0) => {
     let numberOfBytes = 0;
     let currentLineNumber = 1;
 
-    const interface = readlineFromPath(path);
-    for await (const line of interface) {
+    const iter = readlineFromPath(path);
+
+    for await (const line of iter) {
         (!lines || currentLineNumber > lines) ||
             (numberOfBytes += Buffer.byteLength(line) + 1);
         currentLineNumber++;
     }
+
+    iter.close();
 
     return numberOfBytes;
 };
 
 /**
  * Resolves path to use when inserting "require"
- * @param {String} from path from which to resolve 
- * @param {String} to path to which to resolve
- * @param {String} use directory to resolve against
- * @returns {String} resolved path
+ * @param {string} from path from which to resolve
+ * @param {string} to path to which to resolve
+ * @param {string} use directory to resolve against
+ * @returns {string} resolved path
  */
 const relPath = (from, to) => (use) => {
     const choice = dirMap.get(use);
@@ -94,16 +291,17 @@ const relPath = (from, to) => (use) => {
  * @param {String} [destination='']
  * @param {WritableStream} stream 
  * @param {RequireGREP[]} [grep=[]]
- * @param {RequireModules} [require={}]
+ * @param {RequireModules} [required={}]
  * @param {String} [use=root]
+ * @param {Controller} JC
  * @returns {WritableStream}
  */
-const expose = async (path, destination, stream, grep = [], require = {}, use = 'root') => {
+const expose = async (path, destination, stream, grep = [], required = {}, use = 'root', JC) => {
     const write = util.promisify(stream.write).bind(stream);
 
-    const includedModules = Object.keys(require)
+    const includedModules = Object.keys(required)
         .map(key => {
-            const source = require[key];
+            const source = required[key];
 
             const prefixed = source.split('::');
 
@@ -112,6 +310,8 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
             const resolved = hasPrefix ?
                 relPath('', prefixed[1])(prefixed[0]) :
                 relPath(destination, source)(use);
+
+            validateFilePath(resolved, JC);
 
             return `${key !== '' ? `const ${key} = ` : ''}require("${
                 /[^\w-]/.test(source) ? resolved : source
@@ -137,7 +337,6 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
 
         name && exportsObj.push(name);
 
-        //replace strings matchign greps;
         const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
         await write(`${changed}\n`);
     };
@@ -150,7 +349,7 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
         .map(l => '\t' + l)
         .join(',\n')}\n};`;
 
-    await write('\nmodule.exports = ' + moduleExports);
+    await write('\nmodule.exports = exports = ' + moduleExports);
 
     return stream;
 };
@@ -161,62 +360,45 @@ const expose = async (path, destination, stream, grep = [], require = {}, use = 
  * 3. Requires the file for use
  * @param {String} filePath path to source file
  * @param {String} folderPath path to destination folder
- * @param {Object} options configuration object
- * @param {RequireGREP[]} options.grep update lines matching regex
- * @param {RequireModules} options.require include specified modules
- * @param {Number} options.skip lines to skip when writing
- * @param {String} options.use which folder to relate to
+ * @param {ExposeRequireOptions} options configuration object
  * @returns {*} required module content
  */
 const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
-    const inputPath = pt.parse(filePath);
+    const JC = new Controller({}, options);
 
-    const outputPath = pt.resolve(folderPath, inputPath.base);
+    const { skip, use } = options;
 
-    const existingFolderOath = asyncAccess(folderPath)
-        .then(() => log(`[OK] output folder exists or is root\n`))
-        .catch(err => {
-            err.code === 'ENOENT' && fs.mkdirSync(folderPath, { recursive: true });
-            log(`[OK] created folder ${folderPath}\n`);
+    const validInPath = validateFilePath(filePath);
+
+    const inputFilePath = pt.parse(validInPath);
+
+    const validOutPath = validatePath(folderPath);
+
+    const outFilePath = pt.resolve(validOutPath, inputFilePath.base);
+
+    try {
+        const start = await getLineBytes(outFilePath, skip) || 0;
+
+        const writeable = fs.createWriteStream(outFilePath, {
+            start,
+            flags: start ? 'r+' : 'w'
         });
 
-    const readWriteMask = fs.constants.W_OK | fs.constants.R_OK;
+        const { grep, require: required } = options;
 
-    const existingOutputFileOath = asyncAccess(outputPath, readWriteMask)
-        .then(() => log(`[OK] output file exists and can be written\n`))
-        .catch(async err => {
+        await expose(filePath, folderPath, writeable, grep, required, use, JC);
 
-            const makeIfNone = err.code === 'ENOENT' && asyncAppendFile(outputPath, '')
-                .then(() => log(`[OK] created output file\n`))
-                .catch(err => {
-                    //TODO handle file creation issues
-                });
+        JC.success(`[EXPOSED] ${filePath} => ${folderPath}`);
 
-            const permitIfNot = err.code === 'EPERM' && asyncChmod(outputPath, '0o755')
-                .then(() => log(`[OK] changed file permissions to read, write\n`))
-                .catch(err => {
-                    log(`[STOP] not enough permissions to change mode\n`);
-                    process.exit(1);
-                });
-
-            return Promise.all([makeIfNone, permitIfNot]);
-        });
-
-    await Promise.all([existingFolderOath, existingOutputFileOath]);
-
-    const skipBytes = await (getLineBytes(outputPath, options.skip));
-
-    const writeable = fs.createWriteStream(outputPath, {
-        start: skipBytes || 0,
-        flags: skipBytes ? 'r+' : 'w'
-    });
-
-    await expose(filePath, folderPath, writeable, options.grep, options.require, options.use);
-
-    return require(`${outputPath}`);
+        return require(`${outFilePath}`);
+    }
+    catch (handlingError) {
+        JC.err(`[FAILED] Could not process file:\n${handlingError}`);
+    }
 };
 
 module.exports = {
+    Controller,
     exposeAndRequire
 };
