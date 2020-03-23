@@ -9,9 +9,14 @@
     ],
     "version": "1.0.0",
     "devDependencies": {
-        "mocha": "^7.1.0"
+        "chai": "^4.2.0",
+        "chai-as-promised": "^7.1.1",
+        "mocha": "^7.1.1"
     },
-    "dependencies": {},
+    "dependencies": {
+        "@types/chai-as-promised": "^7.1.2",
+        "chalk": "^3.0.0"
+    },
     "license": "MIT",
     "repository": {
         "type": "git",
@@ -23,5 +28,13 @@
     "main": "./src/main.js",
     "scripts": {
         "test": "mocha"
+    },
+    "mocha": {
+        "watch": true,
+        "watchFiles": [
+            "src",
+            "test/test.js",
+            "test/utils.js"
+        ]
     }
 }
