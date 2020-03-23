@@ -1,7 +1,7 @@
 /**
  * Deep freezes an object
- * @param {Object} obj 
- * @returns {Object}
+ * @param {object} obj 
+ * @returns {object}
  */
 const frost = (obj = {}) => {
     Object.freeze(obj);
@@ -16,18 +16,25 @@ const frost = (obj = {}) => {
     return obj;
 };
 
+/**
+ * @enum
+ */
 const ERRS = frost({
     Intercept: {
         original: 'Nothing to wrap',
         callback: 'Nothing to handle'
+    },
+    Retry: {
+        callback: 'Nothing to retry',
+        negative: "Can't retry negative times"
     }
 });
 
 /**
  * Intercepts synchrnous errors
- * @param {Function} original 
- * @param {Function} errorCallback 
- * @return {Function}
+ * @param {function} original
+ * @param {function} errorCallback
+ * @return {function}
  */
 const interceptErrors = (original, errorCallback) => {
 
@@ -44,11 +51,42 @@ const interceptErrors = (original, errorCallback) => {
             return original(...args);
         }
         catch (error) {
-            return errorCallback(error);
+            return errorCallback(error, ...args);
         }
     };
 };
 
+/**
+ * Retries callback if it errs
+ * @param {function} callback 
+ * @param {number} [times] 
+ * @returns {function}
+ */
+const retry = (callback, times = 0) => {
+    const { Retry } = ERRS;
+
+    if (!typeof callback === 'function') {
+        throw new SyntaxError(Retry.callback);
+    }
+
+    if (times < 0) {
+        throw new RangeError(Retry.negative);
+    }
+
+    const wrapped = interceptErrors(callback, (error, ...args) => {
+        if (times === 0) {
+            throw error;
+        }
+
+        times--;
+
+        return wrapped(...args);
+    });
+
+    return wrapped;
+};
+
 module.exports = {
-    interceptErrors
+    interceptErrors,
+    retry
 };
