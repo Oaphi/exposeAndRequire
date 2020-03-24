@@ -150,7 +150,7 @@ The module can redirect logging output for you if you need to export to a file o
 
 ## Versions
 
-Current version is 1.2.0
+Current version is 1.2.3
 
 <table>
     <thead>
@@ -158,7 +158,7 @@ Current version is 1.2.0
             <th>Version</th>
             <th>Features</th>
             <th>Squashed 🐞</th>
-        </tr>    
+        </tr>
     </thead>
     <tbody>
         <tr>

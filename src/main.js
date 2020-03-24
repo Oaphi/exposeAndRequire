@@ -2,11 +2,10 @@ const fs = require('fs');
 const rl = require('readline');
 const util = require('util');
 const pt = require('path');
-const { EventEmitter } = require('events');
-const { blue, green, red, yellow } = require('chalk');
-const { execSync } = require('child_process');
 
-const { clearCached, interceptErrors } = require('./utils.js');
+const { validatePath, validateFilePath } = require('./validator.js');
+const { clearCached, dirMap } = require('./utils.js');
+const Controller = require('./control.js');
 
 /**
  * @typedef RequireGREP
@@ -29,215 +28,10 @@ const { clearCached, interceptErrors } = require('./utils.js');
  * @property {RequireModules} [require] include specified modules
  */
 
-
-
-/**
- * Map of directory options to 
- * resolve against when requiring
- * and making outputs
- * @enum {Map<string, string>}
- * @property {string} cwd resolve against process cwd
- * @property {string} module resolve against module dir
- * @property {string} root
- */
-const dirMap = new Map();
-dirMap.set('cwd', process.cwd());
-dirMap.set('module', __dirname);
-dirMap.set('root', '.');
-
-
-/**
- * Prepares output path for export
- * @param {string} path
- * @param {string} [use=root]
- * @param {Controller} JC
- * @return {string}
- */
-const validatePath = interceptErrors(
-    (path, use = 'root') => {
-        const checkedPath = !path || path === '' ? dirMap.get(use) : path;
-
-        if (!fs.existsSync(checkedPath)) {
-            fs.mkdirSync(checkedPath, { recursive: true });
-        }
-
-        return checkedPath;
-    },
-    () => console.warn('') //TODO add handling
-);
-
-/**
- * Prepares input path for import
- * @param {string} path 
- * @param {string} [use=root] 
- * @param {Controller} JC
- * @returns {string}
- */
-const validateFilePath = (path, use = 'root', JC) => {
-    const parsed = pt.parse(path);
-
-    const { base, dir } = parsed;
-
-    const validPath = validatePath(dir, use);
-
-    const validFilePath = pt.resolve(validPath, base);
-
-    if (!fs.existsSync(validFilePath)) {
-        try {
-            execSync(`touch "${path}"`);
-            JC.success(`[RESOLVED] Created source: ${path}`);
-        }
-        catch (touchError) {
-            //TODO: handle
-        }
-    }
-
-    return validFilePath;
-};
-
-/**
- * Validate output redirection
- * @param {NodeJS.WritableStream|string} output 
- * @param {Controller} JC
- * @returns {NodeJS.WritableStream|string}
- */
-const validateLog = (output, JC) => {
-
-    if (!output) {
-        return process.stdout;
-    }
-
-    if (typeof output === 'string') {
-        try {
-            const parsed = pt.parse(output);
-
-            const { base, dir, ext } = parsed;
-
-            const dirPath = ext !== '' ? dir : output;
-
-            const validPath = validatePath(dirPath);
-
-            const logFilePath = pt.join(validPath, ext !== '' ? base : 'log.txt');
-
-            return fs.createWriteStream(logFilePath, { flags: "a+" });
-        }
-        catch (notAPath) {
-            throw new TypeError('Output should be a valid path');
-        }
-    }
-
-    const { write, writeable } = output;
-
-    if (typeof write !== 'function' || !writeable) {
-        throw new TypeError('Output redirect should be writable');
-    }
-
-    return output;
-};
-
-const stripColor = (msg) => msg.replace(/\u001b\[(?:0|1)*;*(?:3|4)(?:\d)m/g, '');
-
-class Controller extends EventEmitter {
-
-    #color = true;
-    #mute = false;
-
-    /**
-     * @param {EventEmitterOptions} emitterOpts
-     * @param {ExposeRequireOptions} [opts]
-     */
-    constructor(emitterOpts = {}, opts = {}) {
-
-        super(emitterOpts);
-
-        this.#mute = opts.mute || false;
-        this.#color = opts.color || true;
-
-        this.output = validateLog(opts.log, this);
-
-        this.logs = new Map();
-    }
-
-    /**
-     * Logs a message at debug level
-     * @param {string} msg 
-     * @returns {Controller}
-     */
-    debug(msg) {
-        return this.log(blue(msg), 'debug');
-    }
-
-    /**
-     * Logs an error level message
-     * @param {string} msg 
-     * @returns {Controller}
-     */
-    err(msg) {
-        return this.log(red(msg), 'error');
-    }
-
-    /**
-     * Logs a message at success level
-     * @param {string} msg 
-     * @returns {Controller}
-     */
-    success(msg) {
-        return this.log(green(msg), 'success');
-    }
-
-    /**
-     * Logs a warning level message
-     * @param {string} msg 
-     * @returns {Controller}
-     */
-    warn(msg) {
-        return this.log(yellow(msg), 'warn');
-    }
-
-    /**
-     * Logs a message
-     * @param {string} message 
-     * @param {string} level 
-     * @returns {Controller}
-     */
-    log(message, level = 'log') {
-        const { logs, output } = this;
-
-        this.emit(level);
-
-        logs
-            .set(Date.now(), {
-                message,
-                level
-            });
-
-        this.#color || (message = stripColor(message));
-
-        this.#mute || output.write(`${message}\n`);
-
-        return this;
-    }
-
-    mute() {
-        this.emit('mute');
-
-        this.#mute = true;
-        return this;
-    }
-
-    unmute() {
-        this.emit('unmute');
-
-        this.#mute = false;
-        return this;
-    }
-
-}
-
 /**
  * Creates readline interface from path 
  * for reading files line by line
- * @param {String} path valid path 
+ * @param {string} path valid path 
  * @returns {Interface}
  */
 const readlineFromPath = (path) => {
@@ -247,8 +41,8 @@ const readlineFromPath = (path) => {
 
 /**
  * Counts number bytes in first N lines of a file
- * @param {String} path valid path
- * @param {Number} [lines] lines to count
+ * @param {string} path valid path
+ * @param {number} [lines] lines to count
  * @returns {Promise} bytes in lines
  */
 const getLineBytes = async (path, lines = 0) => {
@@ -321,6 +115,7 @@ const processLine = async (write, line, grep, exportsObj) => {
  * @returns {WritableStream}
  */
 const expose = async (path, destination, stream, grep = [], required = {}, use = 'root', JC) => {
+
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.entries(required)
@@ -379,6 +174,8 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
     const JC = new Controller({}, options);
 
+    JC.time('All');
+
     const { skip, use } = options;
 
     const validInPath = validateFilePath(filePath, use, JC);
@@ -405,6 +202,8 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
         clearCached(outFilePath);
 
+        JC.timeEnd();
+
         return require(`${outFilePath}`);
     }
     catch (handlingError) {
@@ -413,6 +212,5 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 };
 
 module.exports = {
-    Controller,
     exposeAndRequire
 };

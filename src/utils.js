@@ -115,8 +115,21 @@ const clearCached = (rule) => {
     }
 };
 
+/**
+ * Map of directory options to resolve against 
+ * @enum {Map<string, string>}
+ * @property {string} cwd resolve against process cwd
+ * @property {string} module resolve against module dir
+ * @property {string} root resolve against package root
+ */
+const dirMap = new Map()
+    .set('cwd', process.cwd())
+    .set('module', __dirname)
+    .set('root', '.');
+
 module.exports = {
     interceptErrors,
     clearCached,
+    dirMap,
     retry
 };
