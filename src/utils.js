@@ -39,14 +39,23 @@ const ERRS = frost({
  * @returns {number}
  */
 const isBalanced = (line) => {
-    let balance = 1;
+    let balance = 1, foundClosingFirst = 0, foundOpen = 0;
 
     for(const char of line) {
-        char === '{' && (balance = balance << 1);
-        char === '}' && (balance = balance >> 1);
-    }
 
-    return balance - 1;
+        if (char === '{') {
+            balance = balance << 1;
+            foundOpen |= 1;
+        }
+
+        if(char === '}') {
+            balance = balance >> 1;
+            foundOpen || (foundClosingFirst |= 1);
+        }
+
+    }
+    
+    return balance - !(foundOpen & foundClosingFirst);
 };
 
 /**

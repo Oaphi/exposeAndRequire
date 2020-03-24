@@ -186,7 +186,7 @@ Since Node.js caches modules in `require.cache` object, right before the exposed
 
 If any path in exposure lifecycle does not exist, it will be created. If a folder is missing, it will be created *recursively*. If a file is missing, it will be created, as well as any folder not existing in path (even if this is a source file).
 
-<a id="logging"></a>## Logging
+## Logging<a id="logging"></a>
 
 By default, the module outputs status messages on `stdout` using `chalk`. If you intend to save or process logs, remember to remove colour escape sequences.
 
@@ -200,7 +200,7 @@ The module can redirect logging output for you if you need to export to a file o
 
 ## Versions
 
-Current version is 1.3.0
+Current version is 1.3.1
 
 <table>
     <thead>
