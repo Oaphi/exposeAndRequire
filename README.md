@@ -142,9 +142,11 @@ If any path in exposure lifecycle does not exist, it will be created. If a folde
 
 By default, the module outputs status messages on `stdout` using `chalk`. If you intend to save or process logs, remember to remove colour escape sequences.
 
-<font color="green">[RESOLVED] Created source: mocks/no-such-file.js success</font>
-<font color="green">[EXPOSED] test/source/tested.js => test/mocks</font>
-<font color="red">[FAILED] Could not process file</font>
+[RESOLVED] Created source: mocks/no-such-file.js success
+
+[EXPOSED] test/source/tested.js => test/mocks
+
+[FAILED] Could not process file
 
 The module can redirect logging output for you if you need to export to a file or send to logging service (see [`log`](#log) and [`color`](#color) options).
 
