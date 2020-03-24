@@ -89,7 +89,7 @@ class Controller extends EventEmitter {
     log(message, level = 'log') {
         const { logs, output } = this;
 
-        this.emit(level);
+        this.emit('log', message, level);
 
         logs
             .set(Date.now(), {
@@ -154,8 +154,8 @@ class Controller extends EventEmitter {
         const elapsed = this.#elapsed;
 
         const timer = this.#timer;
-        
-        if(timer) {
+
+        if (timer) {
             const label = this.#timerLabel;
 
             clearInterval(timer);
