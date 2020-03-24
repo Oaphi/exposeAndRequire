@@ -78,7 +78,7 @@ const validateFilePath = (path, use = 'root', JC) => {
 
     const { base, dir } = parsed;
 
-    const validPath = validatePath(dir, use, JC);
+    const validPath = validatePath(dir, use);
 
     const validFilePath = pt.resolve(validPath, base);
 
@@ -151,7 +151,7 @@ class Controller extends EventEmitter {
         super(emitterOpts);
 
         this.#mute = opts.mute || false;
-        this.#color = opts.color || false;
+        this.#color = opts.color || true;
 
         this.output = validateLog(opts.log, this);
 
@@ -331,11 +331,15 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
 
             const hasPrefix = prefixed.length > 1;
 
-            const resolved = hasPrefix ?
-                relPath('', prefixed[1])(prefixed[0]) :
-                relPath(destination, source)(use);
+            const pathToModule = hasPrefix ? prefixed[1] : source;
 
-            validateFilePath(resolved, JC);
+            const resolved = hasPrefix ?
+                relPath('', pathToModule)(prefixed[0]) :
+                relPath(destination, pathToModule)(use);
+
+            const isCore = /^\w+$/.test(pathToModule);
+
+            isCore || validateFilePath(resolved, use, JC);
 
             return `${key !== '' ? `const ${key} = ` : ''}require("${
                 /[^\w-]/.test(source) ? resolved : source
@@ -377,7 +381,7 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
     const { skip, use } = options;
 
-    const validInPath = validateFilePath(filePath);
+    const validInPath = validateFilePath(filePath, use, JC);
 
     const inputFilePath = pt.parse(validInPath);
 
