@@ -86,7 +86,37 @@ const retry = (callback, times = 0) => {
     return wrapped;
 };
 
+/**
+ * Clears module cache
+ * @param {string} rule 
+ * @returns {void}
+ */
+const clearCached = (rule) => {
+
+    if (typeof rule !== 'string') {
+        throw new TypeError(`Expected a string, received ${typeof rule}`);
+    }
+
+    try {
+        const { cache } = require;
+        const cacheEntries = Object.entries(cache);
+
+        const entriesToDelete = cacheEntries.filter(entry => {
+            const [modulePath] = entry;
+            return new RegExp(rule).test(modulePath);
+        });
+
+        for(const entry of entriesToDelete) {
+            delete cache[entry[0]];
+        }
+    }
+    catch (regexpErr) {
+        throw new SyntaxError(`Invalid removal term: ${regexpErr}`);
+    }
+};
+
 module.exports = {
     interceptErrors,
+    clearCached,
     retry
 };

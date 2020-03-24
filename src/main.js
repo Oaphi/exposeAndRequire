@@ -6,7 +6,7 @@ const { EventEmitter } = require('events');
 const { blue, green, red, yellow } = require('chalk');
 const { execSync } = require('child_process');
 
-const { interceptErrors } = require('./utils.js');
+const { clearCached, interceptErrors } = require('./utils.js');
 
 /**
  * @typedef RequireGREP
@@ -84,7 +84,7 @@ const validateFilePath = (path, use = 'root', JC) => {
 
     if (!fs.existsSync(validFilePath)) {
         try {
-            execSync(`touch ${path}`);
+            execSync(`touch "${path}"`);
             JC.success(`[RESOLVED] Created source: ${path}`);
         }
         catch (touchError) {
@@ -287,6 +287,30 @@ const relPath = (from, to) => (use) => {
 
 /**
  * 
+ * @param {function} write 
+ * @param {string} line 
+ * @param {RequireGREP[]} grep 
+ * @param {RequireModules} exportsObj 
+ */
+const processLine = async (write, line, grep, exportsObj) => {
+    const classRegExp = /^(?:\t|\s)*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
+    const funcRegExp = /^(?:\t|\s)*(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
+    const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
+
+    const [full, name] =
+        line.match(classRegExp) ||
+        line.match(funcRegExp) ||
+        line.match(globalVarRegExp) ||
+        [line];
+
+    name && exportsObj.push(name);
+
+    const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
+    await write(`${changed}\n`);
+};
+
+/**
+ * Performs modifications on file lines
  * @param {String} path 
  * @param {String} [destination='']
  * @param {WritableStream} stream 
@@ -299,9 +323,9 @@ const relPath = (from, to) => (use) => {
 const expose = async (path, destination, stream, grep = [], required = {}, use = 'root', JC) => {
     const write = util.promisify(stream.write).bind(stream);
 
-    const includedModules = Object.keys(required)
-        .map(key => {
-            const source = required[key];
+    const includedModules = Object.entries(required)
+        .map(entry => {
+            const [key, source] = entry;
 
             const prefixed = source.split('::');
 
@@ -324,25 +348,8 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
 
     const exportsObj = [];
 
-    const processLine = async (line) => {
-        const classRegExp = /^(?:\t|\s)*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
-        const funcRegExp = /^(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
-        const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
-
-        const [full, name] =
-            line.match(classRegExp) ||
-            line.match(funcRegExp) ||
-            line.match(globalVarRegExp) ||
-            [line];
-
-        name && exportsObj.push(name);
-
-        const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
-        await write(`${changed}\n`);
-    };
-
     for await (const line of IF) {
-        processLine(line);
+        await processLine(write, line, grep, exportsObj);
     }
 
     const moduleExports = `{\n${exportsObj
@@ -357,6 +364,7 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
 /**
  * 1. Exposes file's globally defined classes and functions to module.exports
  * 2. Exports file as Common.js module in the folder specified or root dir
+ * 3. Clears module cache if required module was loaded before
  * 3. Requires the file for use
  * @param {String} filePath path to source file
  * @param {String} folderPath path to destination folder
@@ -390,6 +398,8 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
         await expose(filePath, folderPath, writeable, grep, required, use, JC);
 
         JC.success(`[EXPOSED] ${filePath} => ${folderPath}`);
+
+        clearCached(outFilePath);
 
         return require(`${outFilePath}`);
     }

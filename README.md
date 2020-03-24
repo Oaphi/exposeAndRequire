@@ -53,8 +53,7 @@ ER
 
 ### Usage with source path only
 
-You can omit both the target path and opions, in which case the 
-file will be created in the `root` directory:
+You can omit both the target path and opions, in which case the file will be created in the `root` directory (passing an empty string as the second agrument results is treted the same way):
 
 ````node.js
 const { exposeAndRequire } = require('expose-require');
@@ -62,9 +61,13 @@ const { exposeAndRequire } = require('expose-require');
 //inside async function
 const someModule = await exposeAndRequire('test/test.js');
 
+//with empty string
+const yummy = await exposeAndRequire('dinner/steak.js','');
+
 //do stuff;
 
 ````
+
 
 ### Exposing classes
 
@@ -128,7 +131,11 @@ const awesomeModule = await exposeAndRequire('pathToModule','mocks',{
 });
 ````
 
-### Logging
+## Caching
+
+Since Node.js caches modules in `require.cache` object, right before the exposed module is required, module cache is cleared (only the exposed entry will be deleted) to ensure the module is reloaded.
+
+## Logging
 
 By default, the module outputs status messages on `stdout` using `chalk`. If you intend to save or process logs, remember to remove colour escape sequences.
 
@@ -138,14 +145,16 @@ By default, the module outputs status messages on `stdout` using `chalk`. If you
 
 The module can redirect logging output for you if you need to export to a file or send to logging service (see [`log`](#log) and [`color`](#color) options).
 
-### Versions
+## Versions
+
+Current version is 1.2.0
 
 <table>
     <thead>
         <tr>
             <th>Version</th>
             <th>Features</th>
-            <th>Fixes</th>
+            <th>Squashed 🐞</th>
         </tr>    
     </thead>
     <tbody>
@@ -157,8 +166,13 @@ The module can redirect logging output for you if you need to export to a file o
         <tr>
             <td>1.1.0</td>
             <td>Added "mute", "log" and "color" options</td>
-            <td>Squashed folder creation bugs</td>
+            <td>Output folder location issues</td>
         </tr>
+         <tr>
+            <td>1.2.0</td>
+            <td>Added module cache clearing</td>
+            <td>Folders with spaces escaping</td>
+        </tr>       
     </tbody>
 </table>
 
