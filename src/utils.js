@@ -31,6 +31,25 @@ const ERRS = frost({
 });
 
 /**
+ * Checks if line balances "{}".
+ * Returns >0 if the string is string is left-unbalanced
+ * Returns 0 if the string is balanced
+ * Returns <0 if the string is string is right unbalanced
+ * @param {string} line
+ * @returns {number}
+ */
+const isBalanced = (line) => {
+    let balance = 1;
+
+    for(const char of line) {
+        char === '{' && (balance = balance << 1);
+        char === '}' && (balance = balance >> 1);
+    }
+
+    return balance - 1;
+};
+
+/**
  * Intercepts synchrnous errors
  * @param {function} original
  * @param {function} errorCallback
@@ -129,6 +148,7 @@ const dirMap = new Map()
 
 module.exports = {
     interceptErrors,
+    isBalanced,
     clearCached,
     dirMap,
     retry

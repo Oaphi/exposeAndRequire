@@ -4,7 +4,7 @@ const util = require('util');
 const pt = require('path');
 
 const { validatePath, validateFilePath } = require('./validator.js');
-const { clearCached, dirMap } = require('./utils.js');
+const { clearCached, dirMap, isBalanced } = require('./utils.js');
 const Controller = require('./control.js');
 
 /**
@@ -85,8 +85,9 @@ const relPath = (from, to) => (use) => {
  * @param {string} line 
  * @param {RequireGREP[]} grep 
  * @param {RequireModules} exportsObj 
+ * @param {number} [nested]
  */
-const processLine = async (write, line, grep, exportsObj) => {
+const processLine = async (write, line, grep, exportsObj, nested = 0) => {
     const classRegExp = /^(?:\t|\s)*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
     const funcRegExp = /^(?:\t|\s)*(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
     const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
@@ -95,9 +96,9 @@ const processLine = async (write, line, grep, exportsObj) => {
         line.match(classRegExp) ||
         line.match(funcRegExp) ||
         line.match(globalVarRegExp) ||
-        [line];
+        [];
 
-    name && exportsObj.push(name);
+    nested || name && exportsObj.push(name);
 
     const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
     await write(`${changed}\n`);
@@ -115,7 +116,6 @@ const processLine = async (write, line, grep, exportsObj) => {
  * @returns {WritableStream}
  */
 const expose = async (path, destination, stream, grep = [], required = {}, use = 'root', JC) => {
-
     const write = util.promisify(stream.write).bind(stream);
 
     const includedModules = Object.entries(required)
@@ -147,8 +147,11 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
 
     const exportsObj = [];
 
+    let nested = 0;
+
     for await (const line of IF) {
-        await processLine(write, line, grep, exportsObj);
+        await processLine(write, line, grep, exportsObj, nested);
+        nested += isBalanced(line);
     }
 
     const moduleExports = `{\n${exportsObj
@@ -207,7 +210,7 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
         return require(`${outFilePath}`);
     }
     catch (handlingError) {
-        JC.err(`[FAILED] Could not process file:\n${handlingError}`);
+        JC.err(`[FAILED] Couldn't require module "${filePath}":\n${handlingError}`);
     }
 };
 
