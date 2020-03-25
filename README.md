@@ -182,6 +182,8 @@ const awesomeModule = await exposeAndRequire('pathToModule','mocks',{
 
 Since Node.js caches modules in `require.cache` object, right before the exposed module is required, module cache is cleared (only the exposed entry will be deleted) to ensure the module is reloaded.
 
+*Side note*: although the module will clear output cache, make sure you clear parent module cache if *watching* source files for changes.
+
 ## Fallbacks
 
 If any path in exposure lifecycle does not exist, it will be created. If a folder is missing, it will be created *recursively*. If a file is missing, it will be created, as well as any folder not existing in path (even if this is a source file).

@@ -151,7 +151,7 @@ class Controller extends EventEmitter {
      * @returns {number}
      */
     timeEnd() {
-        const elapsed = this.#elapsed;
+        const elapsed = this.#elapsed.toFixed(3);
 
         const timer = this.#timer;
 
