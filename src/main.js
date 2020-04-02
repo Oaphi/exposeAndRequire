@@ -89,7 +89,7 @@ const relPath = (from, to) => (use) => {
  */
 const processLine = async (write, line, grep, exportsObj, nested = 0) => {
     const classRegExp = /^(?:\t|\s)*class\s+(\w+)(?:\s+extends\s+\w+)*\s*\{/;
-    const funcRegExp = /^(?:\t|\s)*(?:async\s)*function\s+(\w+)\s*(?:\{|\()/;
+    const funcRegExp = /^(?:\t|\s)*(?:async\s)*function\s*(\w+)\s*(?:\{|\()/;
     const globalVarRegExp = /^(?:var|const|let)(?=\s+([\w-]+)(?:(?:\s+\=\s+)|$))/;
 
     const [full, name] =
