@@ -1,3 +1,9 @@
+/**
+ * @module Controller
+ * @author Oleg Valter
+ * @version 1.3.3
+ */
+
 const { EventEmitter } = require('events');
 const { blue, green, red, yellow } = require('chalk');
 

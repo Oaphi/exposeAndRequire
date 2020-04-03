@@ -1,4 +1,10 @@
 /**
+ * @module Utilities
+ * @author Oleg Valter
+ * @version 1.3.3
+ */
+
+/**
  * Deep freezes an object
  * @param {object} obj 
  * @returns {object}
@@ -39,23 +45,14 @@ const ERRS = frost({
  * @returns {number}
  */
 const isBalanced = (line) => {
-    let balance = 1, foundClosingFirst = 0, foundOpen = 0;
+    const hash = { open: 0, closed: 0 };
 
     for(const char of line) {
-
-        if (char === '{') {
-            balance = balance << 1;
-            foundOpen |= 1;
-        }
-
-        if(char === '}') {
-            balance = balance >> 1;
-            foundOpen || (foundClosingFirst |= 1);
-        }
-
+        char === '{' && (hash.open += 1);
+        char === '}' && (hash.closed += 1);
     }
-    
-    return balance - !(foundOpen & foundClosingFirst);
+
+    return hash.open - hash.closed;
 };
 
 /**

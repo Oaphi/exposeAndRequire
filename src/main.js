@@ -1,3 +1,9 @@
+/**
+ * @module Main
+ * @author Oleg Valter
+ * @version 1.3.3
+ */
+
 const fs = require('fs');
 const rl = require('readline');
 const util = require('util');
@@ -101,7 +107,7 @@ const processLine = async (write, line, grep, exportsObj, nested = 0) => {
     nested || name && exportsObj.push(name);
 
     const changed = grep.reduce((acc, config) => acc.replace(config.match, config.replace), line);
-    await write(`${changed}\n`);
+    await write(`${changed} \/\/${nested}\n`);
 };
 
 /**

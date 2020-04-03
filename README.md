@@ -202,7 +202,7 @@ The module can redirect logging output for you if you need to export to a file o
 
 ## Versions
 
-Current version is 1.3.2
+Current version is 1.3.3
 
 <table>
     <thead>
@@ -232,6 +232,11 @@ Current version is 1.3.2
             <td>1.3.0</td>
             <td>Nested declarations are ignored</td>
             <td>-</td>
+        </tr>
+        <tr>
+            <td>1.3.3</td>
+            <td>-</td>
+            <td>Edge case of "} else if {}" correctly decreases nestedness</td>
         </tr>
     </tbody>
 </table>

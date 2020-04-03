@@ -1,3 +1,9 @@
+/**
+ * @module Validator
+ * @author Oleg Valter
+ * @version 1.3.3
+ */
+
 const fs = require('fs');
 const pt = require('path');
 const { execSync } = require('child_process');
