@@ -1,0 +1,30 @@
+
+name: NodeJS build
+
+on: [push]
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        
+        os: [ubuntu-latest, windows-latest]
+    
+      fail-fast: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: NodeJS setup
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+     
+      - run: npm install
+
+      - name: Test compliance
+        run: npm test
+

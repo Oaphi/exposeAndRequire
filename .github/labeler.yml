@@ -1,0 +1,12 @@
+
+utilities:
+  - src/utils.*
+
+feature:
+  - src/main.*
+
+controller:
+  - src/control.*
+
+validator:
+  - src/validator.*
