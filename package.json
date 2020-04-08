@@ -11,7 +11,7 @@
         "nodejs",
         "javascript"
     ],
-    "version": "1.3.3",
+    "version": "1.3.4",
     "devDependencies": {
         "@types/chai-as-promised": "^7.1.2",
         "@types/node": "^13.11.0",
@@ -34,10 +34,10 @@
     },
     "main": "./src/main.js",
     "scripts": {
-        "test": "mocha"
+        "test": "mocha",
+        "test-watch": "mocha --watch"
     },
     "mocha": {
-        "watch": true,
         "watchFiles": [
             "src",
             "test/test.js",

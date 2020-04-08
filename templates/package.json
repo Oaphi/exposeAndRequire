@@ -34,10 +34,10 @@
     },
     "main": "./src/main.js",
     "scripts": {
-        "test": "mocha"
+        "test": "mocha",
+        "test-watch": "mocha --watch"
     },
     "mocha": {
-        "watch": true,
         "watchFiles": [
             "src",
             "test/test.js",

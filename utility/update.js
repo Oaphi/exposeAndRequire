@@ -194,7 +194,7 @@ const init = async () => {
             new Parser(),
             createWriteStream(outPath),
             (err) => {
-                console.log(err);
+                err && console.log(err);
             }
         );
     }

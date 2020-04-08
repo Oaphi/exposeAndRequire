@@ -202,7 +202,7 @@ The module can redirect logging output for you if you need to export to a file o
 
 ## Versions
 
-Current version is 1.3.3
+Current version is 1.3.4
 
 <table>
     <thead>
@@ -238,6 +238,7 @@ Current version is 1.3.3
             <td>-</td>
             <td>Edge case of "} else if {}" correctly decreases nestedness</td>
         </tr>
+        <tr><td>1.3.4</td><td>Added `exposeOnly` option<br>Added path validation</td><td>-</td></tr>
     </tbody>
 </table>
 
