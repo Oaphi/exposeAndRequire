@@ -11,14 +11,30 @@ const { execSync } = require('child_process');
 const { dirMap, interceptErrors } = require('./utils.js');
 
 /**
+ * @param {string} path
+ * @returns {string}
+ */
+const fixCommonTypos = interceptErrors(
+    (path) => {
+        const fixed = path.replace(/^(cwd|module|root)(:(?!=:)\w+)/, '$1:$2');
+        return fixed;
+    },
+    (fixError, path) => {
+        console.warn(fixError); //TODO add advanced handling
+        
+        return path;
+    }
+);
+
+/**
  * Prepares output path for export
  * @param {string} path
  * @param {string} [use=root]
- * @return {string}
+ * @returns {string}
  */
 const validatePath = interceptErrors(
     (path, use = 'root') => {
-        const checkedPath = !path || path === '' ? dirMap.get(use) : path;
+        const checkedPath = !path ? dirMap.get(use) : path;
 
         if (!fs.existsSync(checkedPath)) {
             fs.mkdirSync(checkedPath, { recursive: true });
@@ -26,7 +42,11 @@ const validatePath = interceptErrors(
 
         return checkedPath;
     },
-    () => console.warn('') //TODO add handling
+    (pathError, path) => {
+        console.warn(pathError); //TODO add advanced handling
+
+        return path;
+    }
 );
 
 /**
@@ -45,12 +65,10 @@ const validateFilePath = (path, use = 'root') => {
     const validFilePath = pt.resolve(validPath, base);
 
     if (!fs.existsSync(validFilePath)) {
-        try {
-            execSync(`touch "${path}"`);
-        }
-        catch (touchError) {
-            //TODO: handle
-        }
+        interceptErrors(
+            path => execSync(`touch "${path}"`),
+            (err) => console.log(err)
+        )(path);
     }
 
     return validFilePath;
@@ -96,7 +114,8 @@ const validateLog = (output) => {
 };
 
 module.exports = {
+    fixCommonTypos,
     validateLog,
     validatePath,
     validateFilePath
-}
+};

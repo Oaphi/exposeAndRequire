@@ -9,8 +9,8 @@ const rl = require('readline');
 const util = require('util');
 const pt = require('path');
 
-const { validatePath, validateFilePath } = require('./validator.js');
-const { clearCached, dirMap, isBalanced } = require('./utils.js');
+const { fixCommonTypos, validatePath, validateFilePath } = require('./validator.js');
+const { clearCached, dirMap, isBalanced, interceptErrors } = require('./utils.js');
 const Controller = require('./control.js');
 
 /**
@@ -32,6 +32,7 @@ const Controller = require('./control.js');
  * @property {number} [skip] lines to skip when writing
  * @property {string} [use] which folder to relate to
  * @property {RequireModules} [require] include specified modules
+ * @property {boolean} [exposeOnly] only expose file
  */
 
 /**
@@ -79,8 +80,7 @@ const relPath = (from, to) => (use) => {
     const choice = dirMap.get(use);
 
     const path = pt
-        .resolve(choice, from, to)
-        .replace(/\\/g, '/');
+        .resolve(choice, from, to);
 
     return path;
 };
@@ -128,7 +128,7 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
         .map(entry => {
             const [key, source] = entry;
 
-            const prefixed = source.split('::');
+            const prefixed = fixCommonTypos(source).split('::');
 
             const hasPrefix = prefixed.length > 1;
 
@@ -140,10 +140,12 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
 
             const isCore = /^\w+$/.test(pathToModule);
 
-            isCore || validateFilePath(resolved, use, JC);
+            const fixed = JC.replaceReserved(resolved).replace(/\\/g, '/');
+
+            isCore || validateFilePath(fixed, use, JC);
 
             return `${key !== '' ? `const ${key} = ` : ''}require("${
-                /[^\w-]/.test(source) ? resolved : source
+                /[^\w-]/.test(source) ? fixed : source
                 }");`;
         });
 
@@ -177,7 +179,7 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
  * @param {String} filePath path to source file
  * @param {String} folderPath path to destination folder
  * @param {ExposeRequireOptions} options configuration object
- * @returns {*} required module content
+ * @returns {Promise} promise to resolve with module content
  */
 const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
@@ -185,7 +187,7 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
     JC.time('All');
 
-    const { skip, use } = options;
+    const { exposeOnly, skip, use } = options;
 
     const validInPath = validateFilePath(filePath, use, JC);
 
@@ -213,10 +215,20 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
 
         JC.timeEnd();
 
-        return require(`${outFilePath}`);
+        if (exposeOnly) {
+            return null;
+        }
+
+        return interceptErrors(
+           (path) => require(`${path}`),
+           (err) => {
+               JC.warn(`[INTERCEPT] Couldn't require "${filePath}":\n\n${err}\n`)
+               return null;
+           }
+        )(outFilePath);
     }
     catch (handlingError) {
-        JC.err(`[FAILED] Couldn't require module "${filePath}":\n${handlingError}`);
+        JC.err(`[FAILED] Couldn't require module "${filePath}":\n\n${handlingError}\n`);
     }
 };
 

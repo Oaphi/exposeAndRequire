@@ -4,6 +4,8 @@
  * @version 1.3.3
  */
 
+const pt = require('path');
+const OS = require('os');
 const { EventEmitter } = require('events');
 const { blue, green, red, yellow } = require('chalk');
 
@@ -34,6 +36,16 @@ class Controller extends EventEmitter {
     #timerLabel = null;
 
     /**
+     * @summary Matches reserver chars for filepath parts
+     * @example
+     *      on "win32" drive split by ":" -> /test:file/ matches
+     * @type {Map.<string, RegExp>}
+     * @private
+     */
+    #reserved = new Map()
+        .set('win32', /[/\?%*|"<>]|([^:]):(?!:)/g);
+
+    /**
      * @param {EventEmitterOptions} emitterOpts
      * @param {ExposeRequireOptions} [opts]
      */
@@ -48,6 +60,23 @@ class Controller extends EventEmitter {
         this.output = validateLog(opts.log);
 
         this.logs = new Map();
+    }
+
+    /**
+     * Getter for reserved RegExp
+     * @returns {RegExp}
+     */
+    get reserved() {
+        const { os } = this;
+        return this.#reserved.get(os);
+    }
+
+    /**
+     * Getter for platform
+     * @returns {string}
+     */
+    get os() {
+        return OS.platform();
     }
 
     /**
@@ -69,21 +98,45 @@ class Controller extends EventEmitter {
     }
 
     /**
+     * Mutes log output
+     * @returns {Controller}
+     */
+    mute() {
+        this.emit('mute');
+
+        this.#mute = true;
+        return this;
+    }
+
+    /**
+     * Replaces OS-specific reserved chars in file path
+     * @param {string} [filePath] 
+     * @returns {string}
+     */
+    replaceReserved(filePath = '') {
+        const { reserved } = this;
+        const { sep } = pt;
+
+        const parts = pt.normalize(filePath).split(sep);
+
+        const mapped = parts
+            .slice(1)
+            .map(part => {
+                const fixedPath = part.replace(reserved, '$1');
+                return fixedPath;
+            });
+
+
+        return pt.join(parts[0], ...mapped);
+    }
+
+    /**
      * Logs a message at success level
      * @param {string} msg 
      * @returns {Controller}
      */
     success(msg) {
         return this.log(green(msg), 'success');
-    }
-
-    /**
-     * Logs a warning level message
-     * @param {string} msg 
-     * @returns {Controller}
-     */
-    warn(msg) {
-        return this.log(yellow(msg), 'warn');
     }
 
     /**
@@ -107,17 +160,6 @@ class Controller extends EventEmitter {
 
         this.#mute || output.write(`${message}\n`);
 
-        return this;
-    }
-
-    /**
-     * Mutes log output
-     * @returns {Controller}
-     */
-    mute() {
-        this.emit('mute');
-
-        this.#mute = true;
         return this;
     }
 
@@ -185,6 +227,14 @@ class Controller extends EventEmitter {
         return this;
     }
 
+    /**
+     * Logs a warning level message
+     * @param {string} msg 
+     * @returns {Controller}
+     */
+    warn(msg) {
+        return this.log(yellow(msg), 'warn');
+    }
 }
 
 module.exports = exports = Controller;
