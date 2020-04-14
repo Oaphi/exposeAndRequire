@@ -36,7 +36,8 @@
     "main": "./src/main.js",
     "scripts": {
         "test": "mocha",
-        "test-watch": "mocha --watch"
+        "test-watch": "mocha --watch",
+        "test-no-clean": "mocha --keep"
     },
     "mocha": {
         "watchFiles": [

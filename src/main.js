@@ -1,7 +1,6 @@
 /**
  * @module Main
  * @author Oleg Valter
- * @version 1.3.3
  */
 
 const fs = require('fs');
@@ -138,14 +137,14 @@ const expose = async (path, destination, stream, grep = [], required = {}, use =
                 relPath('', pathToModule)(prefixed[0]) :
                 relPath(destination, pathToModule)(use);
 
-            const isCore = /^\w+$/.test(pathToModule);
+            const isCore = /^(?:\w|-)+$/.test(pathToModule);
 
             const fixed = JC.replaceReserved(resolved).replace(/\\/g, '/');
 
             isCore || validateFilePath(fixed, use, JC);
 
-            return `${key !== '' ? `const ${key} = ` : ''}require("${
-                /[^\w-]/.test(source) ? fixed : source
+            return `${key ? `const ${key} = ` : ''}require("${
+                isCore ? source : fixed
                 }");`;
         });
 
@@ -222,7 +221,7 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
         return interceptErrors(
            (path) => require(`${path}`),
            (err) => {
-               
+
                JC.warn(`[INTERCEPT] Couldn't require "${outFilePath}":\n\n${err}\n`);
 
                return null;

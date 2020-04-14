@@ -1,7 +1,6 @@
 /**
  * @module Validator
  * @author Oleg Valter
- * @version 1.3.3
  */
 
 const fs = require('fs');

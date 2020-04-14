@@ -1,7 +1,6 @@
 /**
  * @module Controller
  * @author Oleg Valter
- * @version 1.3.3
  */
 
 const pt = require('path');

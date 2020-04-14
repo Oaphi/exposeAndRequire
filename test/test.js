@@ -102,24 +102,24 @@ describe('exposeAndRequire', function () {
 
         this.timeout(1000);
 
-        const module = await exposeAndRequire(sourcePath, TEST_PATHS.COLONS, {
+        const module = exposeAndRequire(sourcePath, TEST_PATHS.COLONS, {
             require: {
                 '{ myself }': "root:test/mocks/tested.js"
             }
         });
 
-        expect(module).to.not.be.null;
+        await expect(module).to.eventually.be.fulfilled;
     });
 
     it('edge: should consider xmlhttprequest-ssl core module', async function () {
 
         const mod = await exposeAndRequire(sourcePath, TEST_PATHS.COLONS, {
             require: {
-                '{ myself }': TEST_PATHS.NOTFOUND + "/xmlhttprequest-ssl"
+                '{ myself }': "xmlhttprequest-ssl"
             }
         });
 
-        const nonCore = fs.existsSync(TEST_PATHS.NOTFOUND + '/xmlhttprequest-ssl');
+        const nonCore = fs.existsSync(TEST_PATHS.COLONS + '/xmlhttprequest-ssl');
         expect(nonCore).to.be.false;
     });
 
@@ -268,9 +268,12 @@ const spawnResponsible = (parent, path, env) => {
     return child;
 };
 
+const posArgs = process.argv.slice(2);
+const keepTestOutput = posArgs.includes('--keep');
+
 //clean up after testing
-process
-    .once('beforeExit', () => {
+keepTestOutput || (
+    process.once('beforeExit', () => {
 
         const CWD = process.cwd();
 
@@ -294,4 +297,5 @@ process
             }
         );
 
-    });
+    })
+);

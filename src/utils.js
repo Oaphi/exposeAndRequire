@@ -1,7 +1,6 @@
 /**
  * @module Utilities
  * @author Oleg Valter
- * @version 1.3.3
  */
 
 /**
