@@ -11,7 +11,7 @@
         "nodejs",
         "javascript"
     ],
-    "version": "1.3.4",
+    "version": "1.3.5",
     "devDependencies": {
         "@types/chai-as-promised": "^7.1.2",
         "@types/node": "^13.11.0",

@@ -206,7 +206,7 @@ The module can redirect logging output for you if you need to export to a file o
 
 ## Versions
 
-Current version is 1.3.4
+Current version is 1.3.5
 
 <table>
     <thead>
