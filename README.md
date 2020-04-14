@@ -1,4 +1,7 @@
 # Expose and Require
+
+![NodeJS build](https://github.com/Oaphi/exposeAndRequire/workflows/NodeJS%20build/badge.svg)
+
 Adds "module.exports" to a file, exposing:
 
 - globally defined variables (either with `const`, `let` or `var`);
@@ -19,6 +22,7 @@ written, the module will attempt to resolve the issues.
 2. Path to the target folder
 3. Options object, specifying actions / additional parameters:
   - <a id="color"></a>`color` colorize log output (using color escape sequences)
+  - `exposeOnly` forces module to return `null` and do not `require` exposed file
   - `grep` each line will be matched against and performed replacements on accordingly
   - <a id="log">`log`</a> redirects logging output of the module (see [logging](#logging) ):
     - to a file if path is given
