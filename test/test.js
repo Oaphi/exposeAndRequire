@@ -291,7 +291,7 @@ keepTestOutput || (
 
         spawnResponsible(
             process,
-            pt.resolve(TEST_PATHS.ROOT, 'utility/cleanup.js'),
+            pt.resolve(CWD, 'utility/cleanup.js'),
             {
                 PATHS: pathsToClean
             }
