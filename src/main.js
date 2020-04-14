@@ -222,13 +222,15 @@ const exposeAndRequire = async (filePath, folderPath = '.', options = {}) => {
         return interceptErrors(
            (path) => require(`${path}`),
            (err) => {
-               JC.warn(`[INTERCEPT] Couldn't require "${filePath}":\n\n${err}\n`)
+               
+               JC.warn(`[INTERCEPT] Couldn't require "${outFilePath}":\n\n${err}\n`);
+
                return null;
            }
         )(outFilePath);
     }
     catch (handlingError) {
-        JC.err(`[FAILED] Couldn't require module "${filePath}":\n\n${handlingError}\n`);
+        JC.err(`[FAILED] Couldn't require "${outFilePath}":\n\n${handlingError}\n`);
     }
 };
 

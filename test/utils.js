@@ -11,6 +11,8 @@ describe('Utilities', function () {
 
     const { clearCached, interceptErrors, isBalanced, retry } = utilities;
 
+    this.slow(300);
+
     describe('clearCached', function () {
 
         it('should throw SyntaxError on invalid rule', function () {
