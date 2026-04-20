@@ -1,3 +1,5 @@
+> The repository has been [moved to Codeberg](https://codeberg.org/0valt/expose-require)
+
 # Expose and Require
 
 ![NodeJS build](https://github.com/Oaphi/exposeAndRequire/workflows/NodeJS%20build/badge.svg)
